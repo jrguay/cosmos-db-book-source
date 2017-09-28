@@ -5,7 +5,32 @@
 }
 
 <h2>List of Students</h2>
-
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+<p>
+    <span>Filter by: </span>
+    <select id="filterBy" name="filterBy">
+        <option value="city">City</option>
+        <option value="state">State</option>
+        <option value="postalCode">Postal Code</option>
+    </select>
+    <span> = </span>
+    <input type="text" id="filterValue" name="filterValue" />
+</p>
+<p>
+    <span>Sort by: </span>
+    <select id="sortBy" name="sortBy">
+        <option value="firstName">First Name</option>
+        <option value="lastName">Last Name</option>
+    </select>
+    <select id="sortOrder" name="sortOrder">
+        <option value="asc">Ascending</option>
+        <option value="desc">Descending</option>
+    </select>
+    <input type="submit" value="Go" />
+</p>
+}
 <p>
     @Html.ActionLink("Create New", "Create")
 </p>

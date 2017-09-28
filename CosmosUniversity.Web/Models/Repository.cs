@@ -7,7 +7,6 @@ using System.Configuration;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using System.Web;
 
 namespace CosmosUniversity.Web.Models
 {
@@ -23,7 +22,7 @@ namespace CosmosUniversity.Web.Models
         public static async Task<IEnumerable<T>> GetStudentsAsync(Expression<Func<T, bool>> where)
         {
             Uri collectionUri = UriFactory.CreateDocumentCollectionUri(_dbName, _collectionName);
-            FeedOptions feedOptions = new FeedOptions { MaxItemCount = -1 };
+            FeedOptions feedOptions = new FeedOptions { MaxItemCount = -1, EnableCrossPartitionQuery = true };
 
             IDocumentQuery<T> students;
             
@@ -43,6 +42,95 @@ namespace CosmosUniversity.Web.Models
             while (students.HasMoreResults)
             {
                 listOfStudents.AddRange(await students.ExecuteNextAsync<T>());
+            }
+
+            return listOfStudents;
+        }
+
+        public static async Task<IEnumerable<T>> GetStudentsSQLAsync(string filterBy, string filterValue, string sortBy, string sortOrder)
+        {
+            Uri collectionUri = UriFactory.CreateDocumentCollectionUri(_dbName, _collectionName);
+            FeedOptions feedOptions = new FeedOptions { MaxItemCount = -1, EnableCrossPartitionQuery = true };
+
+            string sqlStatement = "SELECT * FROM s";
+            if (!string.IsNullOrEmpty(filterValue))
+            {
+                sqlStatement = sqlStatement + " WHERE s." + filterBy + " = @filterValue";
+            }
+
+            sqlStatement = sqlStatement + " ORDER BY s." + sortBy + " " + sortOrder.ToUpper();
+
+            SqlQuerySpec querySpec = new SqlQuerySpec()
+            {
+                QueryText = sqlStatement,
+                Parameters = new SqlParameterCollection()
+                {
+                    new SqlParameter("@filterValue", filterValue)
+                }
+            };
+
+            IDocumentQuery<T> students = client.CreateDocumentQuery<T>(collectionUri, querySpec, feedOptions)
+                                 .AsDocumentQuery();
+
+            List<T> listOfStudents = new List<T>();
+            while (students.HasMoreResults)
+            {
+                listOfStudents.AddRange(await students.ExecuteNextAsync<T>());
+            }
+
+            return listOfStudents;
+        }
+
+        public static async Task<IEnumerable<Student>> GetStudentsLINQAsync(string filterBy, string filterValue, string sortBy, string sortOrder)
+        {
+            Uri collectionUri = UriFactory.CreateDocumentCollectionUri(_dbName, _collectionName);
+            FeedOptions feedOptions = new FeedOptions { MaxItemCount = -1, EnableCrossPartitionQuery = true };
+
+            var linqQuery = from s in client.CreateDocumentQuery<Student>(collectionUri, feedOptions)
+                            select s;
+
+            if (!string.IsNullOrEmpty(filterValue))
+            {
+                switch (filterBy)
+                {
+                    case "city":
+                        linqQuery = from s in client.CreateDocumentQuery<Student>(collectionUri, feedOptions)
+                                    where s.City == filterValue
+                                    select s;
+                        break;
+                    case "state":
+                        linqQuery = from s in client.CreateDocumentQuery<Student>(collectionUri, feedOptions)
+                                    where s.State == filterValue
+                                    select s;
+                        break;
+                    case "postalCode":
+                        var postalCode = Convert.ToInt32(filterValue);
+                        linqQuery = from s in client.CreateDocumentQuery<Student>(collectionUri, feedOptions)
+                                    where s.PostalCode == postalCode
+                                    select s;
+                        break;
+                }
+            }
+
+            if (sortBy == "firstName")
+            {
+                linqQuery = sortOrder == "asc"
+                            ? linqQuery.OrderBy(x => x.FirstName)
+                            : linqQuery.OrderByDescending(x => x.FirstName);
+            }
+            else
+            {
+                linqQuery = sortOrder == "asc"
+                            ? linqQuery.OrderBy(x => x.LastName)
+                            : linqQuery.OrderByDescending(x => x.LastName);
+            }
+
+            IDocumentQuery<Student> students = linqQuery.AsDocumentQuery();
+
+            List<Student> listOfStudents = new List<Student>();
+            while (students.HasMoreResults)
+            {
+                listOfStudents.AddRange(await students.ExecuteNextAsync<Student>());
             }
 
             return listOfStudents;

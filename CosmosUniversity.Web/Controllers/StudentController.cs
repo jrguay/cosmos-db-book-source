@@ -14,7 +14,59 @@ namespace CosmosUniversity.Web.Controllers
         [ActionName("Index")]
         public async Task<ActionResult> IndexAsync()
         {
-            var students = await Repository<Student>.GetStudentsAsync(null);
+            var students = await Repository<Student>.GetStudentsAsync(x => x.PostalCode == 0);
+            return View(students);
+        }
+
+        [HttpPost]
+        [ActionName("Index")]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> IndexAsync(string filterBy, string filterValue, string sortBy, string sortOrder)
+        {
+            #region LINQ
+            IEnumerable<Student> students = await Repository<Student>.GetStudentsLINQAsync(filterBy, filterValue, sortBy, sortOrder);
+            #endregion
+
+            #region SQL
+            //IEnumerable<Student> students = await Repository<Student>.GetStudentsSQLAsync(filterBy, filterValue, sortBy, sortOrder);
+            #endregion
+
+            #region Lambda
+            //if (!string.IsNullOrEmpty(filterValue))
+            //{
+            //    switch (filterBy)
+            //    {
+            //        case "city":
+            //            students = await Repository<Student>.GetStudentsAsync(x => x.City == filterValue);
+            //            break;
+            //        case "state":
+            //            students = await Repository<Student>.GetStudentsAsync(x => x.State == filterValue);
+            //            break;
+            //        case "postalCode":
+            //            var postalCode = Convert.ToInt32(filterValue);
+            //            students = await Repository<Student>.GetStudentsAsync(x => x.PostalCode == postalCode);
+            //            break;
+            //    }
+            //}
+            //else
+            //{
+            //    students = await Repository<Student>.GetStudentsAsync(null);
+            //}
+
+            //if (sortBy == "firstName")
+            //{
+            //    students = sortOrder == "asc" 
+            //                ? students.OrderBy(x => x.FirstName) 
+            //                : students.OrderByDescending(x => x.FirstName);
+            //}
+            //else
+            //{
+            //    students = sortOrder == "asc"
+            //                ? students.OrderBy(x => x.LastName)
+            //                : students.OrderByDescending(x => x.LastName);
+            //}
+            #endregion
+
             return View(students);
         }
 
