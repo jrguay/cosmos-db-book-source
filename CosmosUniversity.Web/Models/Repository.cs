@@ -16,8 +16,15 @@ namespace CosmosUniversity.Web.Models
         private static readonly string _authKey = ConfigurationManager.AppSettings["CosmosDBAuthKey"];
         private static readonly string _dbName = "cosmosuniversity";
         private static readonly string _collectionName = "student";
-        private static ConnectionPolicy _connectionPolicy = new ConnectionPolicy { EnableEndpointDiscovery = false };
-        private static DocumentClient client = new DocumentClient(new Uri(_endPoint), _authKey, _connectionPolicy);
+        private static DocumentClient client = GetNewDocumentClient();
+
+        private static DocumentClient GetNewDocumentClient()
+        {
+            ConnectionPolicy _connectionPolicy = new ConnectionPolicy { EnableEndpointDiscovery = false };
+            //_connectionPolicy.PreferredLocations.Add(LocationNames.CentralUS);
+            //_connectionPolicy.PreferredLocations.Add(LocationNames.WestUS2);
+            return new DocumentClient(new Uri(_endPoint), _authKey, _connectionPolicy);
+        }
 
         public static async Task<IEnumerable<T>> GetStudentsAsync(Expression<Func<T, bool>> where)
         {
