@@ -54,6 +54,30 @@ namespace CosmosUniversity.Web.Models
             return listOfStudents;
         }
 
+        public static async Task<IEnumerable<T>> GetStudentsAgeAsync()
+        {
+            Uri collectionUri = UriFactory.CreateDocumentCollectionUri(_dbName, _collectionName);
+            FeedOptions feedOptions = new FeedOptions { MaxItemCount = -1, EnableCrossPartitionQuery = true };
+
+            string sqlStatement = "SELECT s.firstName, s.lastName, udf.studentAge(s.birthDate) AS studentAge FROM s";
+
+            SqlQuerySpec querySpec = new SqlQuerySpec()
+            {
+                QueryText = sqlStatement,
+            };
+
+            IDocumentQuery<T> students = client.CreateDocumentQuery<T>(collectionUri, querySpec, feedOptions)
+                                 .AsDocumentQuery();
+
+            List<T> listOfStudents = new List<T>();
+            while (students.HasMoreResults)
+            {
+                listOfStudents.AddRange(await students.ExecuteNextAsync<T>());
+            }
+
+            return listOfStudents;
+        }
+
         public static async Task<IEnumerable<T>> GetStudentsSQLAsync(string filterBy, string filterValue, string sortBy, string sortOrder)
         {
             Uri collectionUri = UriFactory.CreateDocumentCollectionUri(_dbName, _collectionName);
@@ -169,7 +193,22 @@ namespace CosmosUniversity.Web.Models
         public static async Task<Document> CreateStudentAsync(T student)
         {
             Uri collectionUri = UriFactory.CreateDocumentCollectionUri(_dbName, _collectionName);
-            return await client.CreateDocumentAsync(collectionUri, student);
+            RequestOptions requestOptions = new RequestOptions { PreTriggerInclude = new List<string> { "preCreateStudentIdentifyGenius" } };
+            return await client.CreateDocumentAsync(collectionUri, student, requestOptions);
+        }
+
+        public static async Task<Document> CreateStudentWithStoredProcAsync(T student)
+        {
+            Uri storedProcedureUri = UriFactory.CreateStoredProcedureUri(_dbName, _collectionName, "createStudent");
+            var st = student as Student;
+            
+            RequestOptions requestOptions = new RequestOptions
+            {
+                PartitionKey = new PartitionKey(st.PostalCode),
+                PreTriggerInclude = new List<string> { "pre" }
+            };
+            
+            return await client.ExecuteStoredProcedureAsync<Document>(storedProcedureUri, requestOptions, student);
         }
 
         public static async Task<Document> ReplaceStudentAsync(T student, string id)

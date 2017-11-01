@@ -18,6 +18,13 @@ namespace CosmosUniversity.Web.Controllers
             return View(students);
         }
 
+        [ActionName("AgeList")]
+        public async Task<ActionResult> AgeListAsync()
+        {
+            var students = await Repository<StudentAge>.GetStudentsAgeAsync();
+            return View(students);
+        }
+
         [HttpPost]
         [ActionName("Index")]
         [ValidateAntiForgeryToken]
@@ -96,11 +103,13 @@ namespace CosmosUniversity.Web.Controllers
             try
             {
                 await Repository<Student>.CreateStudentAsync(student);
+                //await Repository<Student>.CreateStudentWithStoredProcAsync(student);
                 return RedirectToAction("Index");
             }
-            catch
+            catch(Exception ex)
             {
-                return View(student);
+                throw ex;
+                //return View(student);
             }
         }
 
